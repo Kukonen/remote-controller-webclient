@@ -1,10 +1,7 @@
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-let accessToken: string | null = localStorage.getItem('access_token');
-let refreshToken: string | null = localStorage.getItem('refresh_token');
-
 const refreshAccessToken = async (): Promise<boolean> => {
-    if (!refreshToken) {
+    if (!localStorage.getItem('refresh_token')) {
         return false;
     }
 
@@ -13,7 +10,7 @@ const refreshAccessToken = async (): Promise<boolean> => {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ refreshToken }),
+        body: localStorage.getItem('refresh_token'),
     });
 
     if (response.ok) {
@@ -40,7 +37,7 @@ export async function request<T>(
             method,
             headers: {
                 'Content-Type': 'application/json',
-                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                ...(localStorage.getItem('access_token') ? { Authorization: `Bearer ${localStorage.getItem('access_token')}` } : {}),
             },
             body: body ? JSON.stringify(body) : undefined,
         });
@@ -57,5 +54,10 @@ export async function request<T>(
         throw new Error(`API Error ${response.status}: ${errorBody}`);
     }
 
-    return response.json();
+    const text = await response.text();
+    try {
+        return text ? JSON.parse(text) : {} as T;
+    } catch (e) {
+        throw new Error(`Ошибка парсинга JSON: ${text}`);
+    }
 }
