@@ -4,6 +4,9 @@ import {
 } from '@chakra-ui/react';
 import { request } from '../utils/request';
 import {useNavigate} from "react-router-dom";
+import type {UsersWithPermissionsResponse} from "../models/UsersWithPermissionsResponse.ts";
+import {parseJwt} from "../utils/parseJwt.ts";
+import {useUserStore} from "../store/userStore.ts";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -24,30 +27,27 @@ export default function Login() {
 
         try {
             const data = await request<{ accessToken: string; refreshToken: string }>(
-                'login',
-                'POST',
-                { login, password }
+                'login', 'POST', { login, password }
             );
 
             localStorage.setItem('access_token', data.accessToken);
             localStorage.setItem('refresh_token', data.refreshToken);
 
-            toast({
-                title: 'Успешный вход!',
-                status: 'success',
-                duration: 3000,
-                isClosable: true,
-            });
+            const parsedAccessToken = parseJwt(data.accessToken);
+            const userId = parsedAccessToken?.nameid;
+            if (!userId) return;
 
+            const userData = await request<UsersWithPermissionsResponse>(
+                `GetUserWithPermissionsAndMachines/${userId}`,
+                'GET'
+            );
+
+            useUserStore.getState().setUser(userData);
+
+            toast({ title: 'Успешный вход!', status: 'success', duration: 3000, isClosable: true });
             navigate('/');
-        } catch (err: any) {
-            toast({
-                title: 'Ошибка',
-                description: 'Попробуйте снова',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
+        } catch (err) {
+            toast({ title: 'Ошибка входа', status: 'error', duration: 3000, isClosable: true });
         }
     };
 

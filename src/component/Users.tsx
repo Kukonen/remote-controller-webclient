@@ -23,6 +23,8 @@ const allPermissions: Permission[] = [
     Permission.Command_Write,
     Permission.User_Read,
     Permission.User_Write,
+    Permission.Machine_Read,
+    Permission.Machine_Write,
 ];
 
 export const Users: React.FC = () => {
@@ -114,6 +116,16 @@ export const Users: React.FC = () => {
         }
     };
 
+    const handleDelete = async (userId: string) => {
+        try {
+            await request(`DeleteUser/${userId}`, "DELETE");
+            setUsers((prev) => prev.filter((u) => u.user.userId !== userId));
+            toast({ title: "Пользователь удалён", status: "success" });
+        } catch (error) {
+            toast({ title: "Ошибка удаления", status: "error" });
+        }
+    };
+
     return (
         <Box p={6}>
             <Heading mb={6}>Пользователи</Heading>
@@ -141,7 +153,7 @@ export const Users: React.FC = () => {
                                 </Checkbox>
                             ))}
                         </Flex>
-                        <Text mt={4} mb={1}>Машины:</Text>
+                        <Text mt={4} mb={1}>Станки:</Text>
                         <Flex gap={4} wrap="wrap">
                             {machines.map((m) => (
                                 <Checkbox
@@ -155,6 +167,15 @@ export const Users: React.FC = () => {
                         </Flex>
                         <Button mt={4} onClick={() => handleSave(user)} colorScheme="blue">
                             Сохранить
+                        </Button>
+                        <Button
+                            mt={4}
+                            ml={4}
+                            onClick={() => handleDelete(user.user.userId)}
+                            colorScheme="red"
+                            variant="outline"
+                        >
+                            Удалить
                         </Button>
                     </Box>
                 ))}

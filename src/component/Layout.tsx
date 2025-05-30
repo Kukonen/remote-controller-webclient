@@ -1,20 +1,17 @@
 import { Box, Button, Flex, Link } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate, Outlet } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import {Permission} from "../enums/Permission.ts";
+import {useUserStore} from "../store/userStore.ts";
 
 export const Layout = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        const token = localStorage.getItem('access_token');
-        setIsAuthenticated(!!token);
-    }, []);
+    const user = useUserStore((state) => state.user);
+    const clearUser = useUserStore((state) => state.clearUser);
 
     const handleLogout = () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        setIsAuthenticated(false);
+        clearUser();
         navigate('/login');
     };
 
@@ -28,9 +25,23 @@ export const Layout = () => {
                 justify="space-between"
                 align="center"
             >
-                <Box fontWeight="bold">MyApp</Box>
                 <Flex gap={4}>
-                    {isAuthenticated ? (
+                    <Box fontWeight="bold">Управление станками</Box>
+                    {user?.permissions?.includes(Permission.User_Read) && (
+                        <Link as={RouterLink} to="/users">Пользователи</Link>
+                    )}
+                    {user?.permissions?.includes(Permission.Machine_Read) && (
+                        <Link as={RouterLink} to="/machines">Станки</Link>
+                    )}
+                    {user !== null && user !== undefined && (
+                        <Link as={RouterLink} to="/machine">Телеметрия</Link>
+                    )}
+                    {user !== null && user !== undefined && (
+                        <Link as={RouterLink} to="/commands">Команды</Link>
+                    )}
+                </Flex>
+                <Flex gap={4}>
+                    {user !== null && user !== undefined ?  (
                         <Button onClick={handleLogout} colorScheme="red" size="sm">
                             Выйти
                         </Button>

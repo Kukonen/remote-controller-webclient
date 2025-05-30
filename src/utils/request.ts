@@ -5,12 +5,14 @@ const refreshAccessToken = async (): Promise<boolean> => {
         return false;
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}Refresh`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: localStorage.getItem('refresh_token'),
+        body: JSON.stringify({
+            RefreshToken: localStorage.getItem('refresh_token')
+        }),
     });
 
     if (response.ok) {
