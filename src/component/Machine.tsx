@@ -95,11 +95,11 @@ export const Machine: React.FC = () => {
     return (
         <Box p={6} bg={bgColor} borderRadius="md" boxShadow="md">
             <Heading size="md" mb={4}>
-                Выберите машину
+                Выберите станок
             </Heading>
 
             <Select
-                placeholder="Выберите машину"
+                placeholder="Выберите станок"
                 value={selectedMachineId}
                 onChange={(e) => setSelectedMachineId(e.target.value)}
                 mb={4}
@@ -112,7 +112,7 @@ export const Machine: React.FC = () => {
             </Select>
 
             <Heading size="md" mb={4}>
-                Данные машины: {selectedMachineId}
+                Данные станка: {selectedMachineId}
             </Heading>
 
             {dataMap.size === 0 ? (

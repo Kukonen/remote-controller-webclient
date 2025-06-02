@@ -35,13 +35,20 @@ export async function request<T>(
     body?: any
 ): Promise<T> {
     const makeRequest = async (): Promise<Response> => {
+        const headers: Record<string, string> = {
+            ...(localStorage.getItem('access_token') ? { Authorization: `Bearer ${localStorage.getItem('access_token')}` } : {}),
+        };
+
+        const isFormData = body instanceof FormData;
+
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+
         return await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
             method,
-            headers: {
-                'Content-Type': 'application/json',
-                ...(localStorage.getItem('access_token') ? { Authorization: `Bearer ${localStorage.getItem('access_token')}` } : {}),
-            },
-            body: body ? JSON.stringify(body) : undefined,
+            headers,
+            body: isFormData ? body : body ? JSON.stringify(body) : undefined,
         });
     };
 

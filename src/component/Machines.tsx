@@ -15,6 +15,7 @@ import type { MachineDto } from "../models/MachineDto";
 export const Machines: React.FC = () => {
     const [machines, setMachines] = useState<MachineDto[]>([]);
     const [newMachineName, setNewMachineName] = useState("");
+    const [newMachineIpAddress, setNewMachineIpAddress] = useState("");
     const toast = useToast();
 
     useEffect(() => {
@@ -34,6 +35,7 @@ export const Machines: React.FC = () => {
         try {
             await request("AddMachine", "POST", {
                 machineName: newMachineName,
+                ipAddress: newMachineIpAddress
             });
             setNewMachineName("");
             await loadMachines();
@@ -43,11 +45,12 @@ export const Machines: React.FC = () => {
         }
     };
 
-    const handleUpdateMachine = async (id: string, name: string) => {
+    const handleUpdateMachine = async (id: string, name: string, ipAddress: string) => {
         try {
             await request("UpdateMachine", "POST", {
                 machineId: id,
                 machineName: name,
+                ipAddress: ipAddress
             });
             toast({ title: "Станок обновлён", status: "success" });
         } catch {
@@ -68,7 +71,7 @@ export const Machines: React.FC = () => {
     return (
         <Box p={6}>
             <Heading mb={6}>Управление станками</Heading>
-            <Stack spacing={4} mb={8} direction={{ base: "column", md: "row" }}>
+            <Stack spacing={2} mb={8} direction={{ base: "column", md: "row" }}>
                 <FormControl>
                     <FormLabel>Название нового станка</FormLabel>
                     <Input
@@ -76,7 +79,14 @@ export const Machines: React.FC = () => {
                         onChange={(e) => setNewMachineName(e.target.value)}
                     />
                 </FormControl>
-                <Button onClick={handleAddMachine} colorScheme="green" alignSelf="end">
+                <FormControl>
+                    <FormLabel>IP-адрес нового станка</FormLabel>
+                    <Input
+                        value={newMachineIpAddress}
+                        onChange={(e) => setNewMachineIpAddress(e.target.value)}
+                    />
+                </FormControl>
+                <Button onClick={handleAddMachine} colorScheme="green" alignSelf="end" width={300}>
                     Добавить
                 </Button>
             </Stack>
@@ -99,7 +109,26 @@ export const Machines: React.FC = () => {
                                     );
                                 }}
                                 onBlur={() =>
-                                    handleUpdateMachine(machine.machineId, machine.machineName)
+                                    handleUpdateMachine(machine.machineId, machine.machineName, machine.ipAddress)
+                                }
+                            />
+                        </FormControl>
+                        <FormControl mb={2}>
+                            <FormLabel>IP-адрес</FormLabel>
+                            <Input
+                                value={machine.ipAddress}
+                                onChange={(e) => {
+                                    const updatedAddress = e.target.value;
+                                    setMachines((prev) =>
+                                        prev.map((m) =>
+                                            m.machineId === machine.machineId
+                                                ? { ...m, ipAddress: updatedAddress }
+                                                : m
+                                        )
+                                    );
+                                }}
+                                onBlur={() =>
+                                    handleUpdateMachine(machine.machineId, machine.machineName, machine.ipAddress)
                                 }
                             />
                         </FormControl>

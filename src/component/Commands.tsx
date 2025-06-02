@@ -19,24 +19,30 @@ import type { CommandDto } from "../models/CommandDto";
 import { CommandType } from "../enums/CommandType.ts";
 import { InfoOutlineIcon } from "@chakra-ui/icons";
 import "./Command.css";
+import type {MachineDto} from "../models/MachineDto.ts";
+import type {CommandResult} from "../models/CommandResult.ts";
 
 
 export const Commands: React.FC = () => {
     const [commands, setCommands] = useState<CommandDto[]>([]);
-    const [selectedId, setSelectedId] = useState<string>("new");
+    const [selectedCommandId, setSelectedCommandId] = useState<string>("new");
+    const [selectedMachineId, setSelectedMachineId] = useState<string>("");
     const [form, setForm] = useState<CommandDto>({
         commandId: "",
         name: "",
-        commandType: CommandType.SSH,
+        commandType: CommandType.Console,
         commandText: "",
         additionalInformationText: "",
     });
     const [hasSaved, setHasSaved] = useState(false);
     const [file, setFile] = useState<File | null>(null);
+    const [machines, setMachines] = useState<MachineDto[]>([]);
+    const [executionResult, setExecutionResult] = useState<CommandResult | null>(null);
     const toast = useToast();
 
     useEffect(() => {
         loadCommands();
+        loadMachines();
     }, []);
 
     const loadCommands = async () => {
@@ -48,15 +54,24 @@ export const Commands: React.FC = () => {
         }
     };
 
+    const loadMachines = async () => {
+        try {
+            const res = await request<MachineDto[]>("GetAllMachines", "GET");
+            setMachines(res);
+        } catch {
+            toast({ title: "Ошибка загрузки станков", status: "error" });
+        }
+    };
+
     const handleSelect = (id: string) => {
-        setSelectedId(id);
+        setSelectedCommandId(id);
         setHasSaved(false);
         setFile(null);
         if (id === "new") {
             setForm({
                 commandId: "",
                 name: "",
-                commandType: CommandType.SSH,
+                commandType: CommandType.Console,
                 commandText: "",
                 additionalInformationText: "",
             });
@@ -84,7 +99,7 @@ export const Commands: React.FC = () => {
 
     const handleSave = async () => {
         try {
-            if (selectedId === "new") {
+            if (selectedCommandId === "new") {
                 await request("AddCommand", "POST", {
                     name: form.name,
                     commandType: form.commandType,
@@ -115,15 +130,26 @@ export const Commands: React.FC = () => {
             return;
         }
 
+        if (!selectedMachineId) {
+            toast({ title: "Станок не выбран", status: "warning" });
+            return;
+        }
+
         const formData = new FormData();
         formData.append("commandId", form.commandId);
+        formData.append("machineId", selectedMachineId);
         if (file) {
             formData.append("file", file);
         }
 
         try {
-            await request("ExecuteCommand", "POST", formData);
-            toast({ title: "Команда выполнена", status: "success" });
+            const result = await request<CommandResult>("ExecuteCommand", "POST", formData);
+            console.log(result)
+            setExecutionResult(result);
+            toast({
+                title: result.IsSuccess ? "Команда выполнена" : "Команда завершилась с ошибкой",
+                status: result.IsSuccess ? "success" : "error",
+            });
         } catch {
             toast({ title: "Ошибка при выполнении команды", status: "error" });
         }
@@ -137,7 +163,7 @@ export const Commands: React.FC = () => {
                 <FormControl w="300px">
                     <FormLabel>Выберите команду</FormLabel>
                     <Select
-                        value={selectedId}
+                        value={selectedCommandId}
                         onChange={(e) => handleSelect(e.target.value)}
                     >
                         <option value="new">— Новая команда —</option>
@@ -170,7 +196,7 @@ export const Commands: React.FC = () => {
                             handleChange("commandType", Number(e.target.value))
                         }
                     >
-                        <option value={CommandType.SSH}>SSH</option>
+                        <option value={CommandType.Console}>Console</option>
                         <option value={CommandType.HTTP}>HTTP</option>
                     </Select>
                 </FormControl>
@@ -212,8 +238,8 @@ export const Commands: React.FC = () => {
                             Выбрать файл
                         </label>
                         <span className="file-name">
-              {file ? file.name : "Файл не выбран"}
-            </span>
+                          {file ? file.name : "Файл не выбран"}
+                        </span>
                     </div>
                 </FormControl>
 
@@ -223,8 +249,23 @@ export const Commands: React.FC = () => {
                         colorScheme="green"
                         isDisabled={!isFormValid}
                     >
-                        {selectedId === "new" ? "Создать" : "Сохранить"}
+                        {selectedCommandId === "new" ? "Создать" : "Сохранить"}
                     </Button>
+                </Flex>
+
+                <Flex gap={4} align="center" mt={4}>
+                    <Select
+                        placeholder="Выберите станок"
+                        value={selectedMachineId}
+                        onChange={(e) => setSelectedMachineId(e.target.value)}
+                        width="300px"
+                    >
+                        {machines.map((machine) => (
+                            <option key={machine.machineId} value={machine.machineId}>
+                                {machine.machineName}
+                            </option>
+                        ))}
+                    </Select>
 
                     <Tooltip
                         label="Команда выполнится корректно, если была предварительно сохранена"
@@ -237,7 +278,7 @@ export const Commands: React.FC = () => {
                             <Button
                                 onClick={handleExecute}
                                 colorScheme="purple"
-                                isDisabled={!isFormValid}
+                                isDisabled={!isFormValid || !selectedMachineId}
                             >
                                 Выполнить
                             </Button>
@@ -246,6 +287,32 @@ export const Commands: React.FC = () => {
                     </Tooltip>
                 </Flex>
             </Stack>
+            {executionResult && (
+                <Box mt={6} p={4} borderWidth={1} borderRadius="md" bg="gray.50">
+                    <Heading size="md" mb={2}>Результат выполнения</Heading>
+                    <Box>
+                        {(() => {
+                            try {
+                                const parsed = JSON.parse(executionResult.Result);
+                                return (
+                                    <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                            {JSON.stringify(parsed, null, 2)}
+                        </pre>
+                                );
+                            } catch {
+                                return (
+                                    <Textarea
+                                        value={executionResult.Result}
+                                        isReadOnly
+                                        resize="vertical"
+                                        bg="white"
+                                    />
+                                );
+                            }
+                        })()}
+                    </Box>
+                </Box>
+            )}
         </Box>
     );
 };

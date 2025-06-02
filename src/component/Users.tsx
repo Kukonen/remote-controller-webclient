@@ -196,7 +196,7 @@ export const Users: React.FC = () => {
                             onChange={(e) => setPassword(e.target.value)}
                         />
                     </FormControl>
-                    <Button alignSelf="end" onClick={handleRegister} colorScheme="green">
+                    <Button alignSelf="end" onClick={handleRegister} colorScheme="green" width={300}>
                         Добавить
                     </Button>
                 </Stack>
